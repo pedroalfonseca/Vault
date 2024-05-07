@@ -63,7 +63,7 @@ typedef union _vec2 {
     f32 data[2];
 } vec2;
 
-#define vec2(x, y) ((vec2){{(x), (y)}})
+//#define vec2(x, y) ((vec2){{(x), (y)}})
 
 inline vec2 vec2_add(vec2 a, vec2 b) {
     vec2 ret;
@@ -129,7 +129,7 @@ typedef union _ivec2 {
     i32 data[2];
 } ivec2;
 
-#define ivec2(x, y) ((ivec2){{(x), (y)}})
+//#define ivec2(x, y) ((ivec2){{(x), (y)}})
 
 inline ivec2 ivec2_add(ivec2 a, ivec2 b) {
     ivec2 ret;
@@ -211,7 +211,7 @@ typedef union _vec3 {
     f32 data[3];
 } vec3;
 
-#define vec3(x, y, z) ((vec3){{(x), (y), (z)}})
+//#define vec3(x, y, z) ((vec3){{(x), (y), (z)}})
 
 inline vec3 vec3_add(vec3 a, vec3 b) {
     vec3 ret;
@@ -304,7 +304,7 @@ typedef union _vec4 {
     f32 data[4];
 } vec4;
 
-#define vec4(x, y, z, w) ((vec4){{(x), (y), (z), (w)}})
+//#define vec4(x, y, z, w) ((vec4){{(x), (y), (z), (w)}})
 
 inline vec4 vec4_add(vec4 a, vec4 b) {
     vec4 ret;
@@ -682,9 +682,9 @@ typedef union _rect {
     struct { vec2 pos, size; };
 } rect;
 
-#define rect(x, y, w, h) ((rect){{(x), (y), (w), (h)}})
+//#define rect(x, y, w, h) ((rect){{(x), (y), (w), (h)}})
 
-inline bool poi32_in_rect(vec2 p, rect r) {
+inline bool point_in_rect(vec2 p, rect r) {
     return p.x >= r.x            &&
            p.x <= r.x + r.width  &&
            p.y >= r.y            &&
@@ -706,9 +706,9 @@ typedef union _irect {
     struct { ivec2 pos, size; };
 } irect;
 
-#define irect(x, y, w, h) ((irect){{(x), (y), (w), (h)}})
+//#define irect(x, y, w, h) ((irect){{(x), (y), (w), (h)}})
 
-inline bool poi32_in_irect(ivec2 p, irect r) {
+inline bool point_in_irect(ivec2 p, irect r) {
     return p.x >= r.x            &&
            p.x <= r.x + r.width  &&
            p.y >= r.y            &&
@@ -721,6 +721,102 @@ inline bool irects_collide(irect a, irect b) {
            a.y < b.y + b.height  &&
            a.y + a.height > b.y;
 }
+
+// --------------------------------------------------------------------------------
+
+#ifdef __cplusplus
+inline bool   operator==(vec2   a, vec2  b) { return a.x == b.x && a.y == b.y; }
+inline bool   operator==(ivec2  a, ivec2 b) { return a.x == b.x && a.y == b.y; }
+inline bool   operator==(vec3   a, vec3  b) { return a.x == b.x && a.y == b.y && a.z == b.z; }
+inline bool   operator==(vec4   a, vec4  b) { return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w; }
+
+inline bool   operator!=(vec2   a, vec2  b) { return !(a == b); }
+inline bool   operator!=(ivec2  a, ivec2 b) { return !(a == b); }
+inline bool   operator!=(vec3   a, vec3  b) { return !(a == b); }
+inline bool   operator!=(vec4   a, vec4  b) { return !(a == b); }
+
+inline vec2   operator- (vec2   v)          { return vec2 (-v.x, -v.y); }
+inline ivec2  operator- (ivec2  v)          { return ivec2(-v.x, -v.y); }
+inline vec3   operator- (vec3   v)          { return vec3 (-v.x, -v.y, -v.z); }
+inline vec4   operator- (vec4   v)          { return vec4 (-v.x, -v.y, -v.z, -v.w); }
+
+inline vec2   operator+ (vec2   a, vec2  b) { return vec2 (a.x + b.x, a.y + b.y); }
+inline ivec2  operator+ (ivec2  a, ivec2 b) { return ivec2(a.x + b.x, a.y + b.y); }
+inline vec3   operator+ (vec3   a, vec3  b) { return vec3 (a.x + b.x, a.y + b.y, a.z + b.z); }
+inline vec4   operator+ (vec4   a, vec4  b) { return vec4 (a.x + b.x, a.y + b.y, a.z + b.z, a.w + b.w); }
+
+inline vec2   operator- (vec2   a, vec2  b) { return vec2 (a.x - b.x, a.y - b.y); }
+inline ivec2  operator- (ivec2  a, ivec2 b) { return ivec2(a.x - b.x, a.y - b.y); }
+inline vec3   operator- (vec3   a, vec3  b) { return vec3 (a.x - b.x, a.y - b.y, a.z - b.z); }
+inline vec4   operator- (vec4   a, vec4  b) { return vec4 (a.x - b.x, a.y - b.y, a.z - b.z, a.w - b.w); }
+
+inline vec2   operator* (vec2   a, vec2  b) { return vec2 (a.x * b.x, a.y * b.y); }
+inline ivec2  operator* (ivec2  a, ivec2 b) { return ivec2(a.x * b.x, a.y * b.y); }
+inline vec3   operator* (vec3   a, vec3  b) { return vec3 (a.x * b.x, a.y * b.y, a.z * b.z); }
+inline vec4   operator* (vec4   a, vec4  b) { return vec4 (a.x * b.x, a.y * b.y, a.z * b.z, a.w * b.w); }
+
+inline vec2   operator* (vec2   a, f32   b) { return vec2 (a.x * b, a.y * b); }
+inline ivec2  operator* (ivec2  a, f32   b) { return ivec2(a.x * b, a.y * b); }
+inline vec3   operator* (vec3   a, f32   b) { return vec3 (a.x * b, a.y * b, a.z * b); }
+inline vec4   operator* (vec4   a, f32   b) { return vec4 (a.x * b, a.y * b, a.z * b, a.w * b); }
+
+inline vec2   operator* (f32    a, vec2  b) { return b * a; }
+inline ivec2  operator* (f32    a, ivec2 b) { return b * a; }
+inline vec3   operator* (f32    a, vec3  b) { return b * a; }
+inline vec4   operator* (f32    a, vec4  b) { return b * a; }
+
+inline vec2   operator/ (vec2   a, f32   b) { return a * (1.0f / b); }
+inline ivec2  operator/ (ivec2  a, f32   b) { return a * (1.0f / b); }
+inline vec3   operator/ (vec3   a, f32   b) { return a * (1.0f / b); }
+inline vec4   operator/ (vec4   a, f32   b) { return a * (1.0f / b); }
+
+inline vec2  &operator+=(vec2  &a, vec2  b) { a = a + b; return a; }
+inline ivec2 &operator+=(ivec2 &a, ivec2 b) { a = a + b; return a; }
+inline vec3  &operator+=(vec3  &a, vec3  b) { a = a + b; return a; }
+inline vec4  &operator+=(vec4  &a, vec4  b) { a = a + b; return a; }
+
+inline vec2  &operator-=(vec2  &a, vec2  b) { a = a - b; return a; }
+inline ivec2 &operator-=(ivec2 &a, ivec2 b) { a = a - b; return a; }
+inline vec3  &operator-=(vec3  &a, vec3  b) { a = a - b; return a; }
+inline vec4  &operator-=(vec4  &a, vec4  b) { a = a - b; return a; }
+
+inline vec2  &operator*=(vec2  &a, vec2  b) { a = a * b; return a; }
+inline ivec2 &operator*=(ivec2 &a, ivec2 b) { a = a * b; return a; }
+inline vec3  &operator*=(vec3  &a, vec3  b) { a = a * b; return a; }
+inline vec4  &operator*=(vec4  &a, vec4  b) { a = a * b; return a; }
+
+inline vec2  &operator*=(vec2  &a, f32   b) { a = a * b; return a; }
+inline ivec2 &operator*=(ivec2 &a, f32   b) { a = a * b; return a; }
+inline vec3  &operator*=(vec3  &a, f32   b) { a = a * b; return a; }
+inline vec4  &operator*=(vec4  &a, f32   b) { a = a * b; return a; }
+
+inline vec2  &operator/=(vec2  &a, f32   b) { a = a / b; return a; }
+inline ivec2 &operator/=(ivec2 &a, f32   b) { a = a / b; return a; }
+inline vec3  &operator/=(vec3  &a, f32   b) { a = a / b; return a; }
+inline vec4  &operator/=(vec4  &a, f32   b) { a = a / b; return a; }
+
+// --------------------------------------------------------------------------------
+
+inline mat4 operator*(mat4 a, mat4 b) {
+    vec4 a0 = a.columns[0];
+    vec4 a1 = a.columns[1];
+    vec4 a2 = a.columns[2];
+    vec4 a3 = a.columns[3];
+
+    vec4 b0 = b.columns[0];
+    vec4 b1 = b.columns[1];
+    vec4 b2 = b.columns[2];
+    vec4 b3 = b.columns[3];
+
+    mat4 ret;
+    ret.columns[0] = a0 * b0.x + a1 * b0.y + a2 * b0.z + a3 * b0.w;
+    ret.columns[1] = a0 * b1.x + a1 * b1.y + a2 * b1.z + a3 * b1.w;
+    ret.columns[2] = a0 * b2.x + a1 * b2.y + a2 * b2.z + a3 * b2.w;
+    ret.columns[3] = a0 * b3.x + a1 * b3.y + a2 * b3.z + a3 * b3.w;
+
+    return ret;
+}
+#endif // __cplusplus
 
 // --------------------------------------------------------------------------------
 

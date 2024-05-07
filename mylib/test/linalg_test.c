@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 int main(void) {
+    /*
     vec2 a = vec2(5.0f, 2.0f);
     printf("{%f, %f}\n", a.x, a.y);
 
@@ -20,6 +21,7 @@ int main(void) {
 
     vec4 color = COLOR_PURPLE;
     printf("{%f, %f, %f, %f}\n", color.x, color.y, color.z, color.w);
+    */
 
     return 0;
 }
