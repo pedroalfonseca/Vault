@@ -1,4 +1,4 @@
-#include "../src/mem.h"
+#include "../src/core.h"
 
 #include <stdio.h>
 

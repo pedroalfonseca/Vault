@@ -1,8 +1,6 @@
 //#define MEMDBG_PRINT_ALL
 //#include "../src/memdbg.h"
-#include "../src/array.h"
-
-#include <stdio.h>
+#include "../src/core.h"
 
 #define watch(arr, op) \
     printf("[%s] after %s\n", #arr, (op)); \
@@ -78,11 +76,25 @@ int main(void) {
 
     watch(arr1, "sort");
 
+    array_resize(arr1, 2);
+
+    watch(arr1, "resize");
+
+    array_resize(arr1, 7);
+
+    watch(arr1, "resize");
+
     array_free(arr1);
 
     watch(arr1, "free");
 
     //memdbg_print_stats(stderr, true);
+
+    array_resize(arr1, 5);
+
+    watch(arr1, "resize");
+
+    array_free(arr1);
 
     return 0;
 }

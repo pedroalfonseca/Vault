@@ -14,12 +14,12 @@
 global const char *prefixes[7] = {"", "kilo", "mega", "giga", "tera", "peta", "exa"};
 
 typedef struct _pretty_size {
-    double      size;
+    f64         size;
     const char *prefix;
 } pretty_size;
 
 internal pretty_size prettify(usize size) {
-    double total = (double)size;
+    f64 total = (f64)size;
 
     usize i = 0;
     while (i < 6 && size >> 10) {
@@ -28,7 +28,7 @@ internal pretty_size prettify(usize size) {
     }
 
     pretty_size ret;
-    ret.size = total / (double)(1 << (i * 10));
+    ret.size = total / (f64)(1 << (i * 10));
     ret.prefix = prefixes[i];
 
     return ret;
@@ -85,7 +85,7 @@ void memtable_init(memtable *self) {
 }
 
 void memtable_mgrow(memtable *self) {
-    double load = (double)(self->num_act + self->num_del) / (double)(self->cap);
+    f64 load = (f64)(self->num_act + self->num_del) / (f64)(self->cap);
     usize new_cap = self->cap;
 
     if (load < MEMTABLE_MIN_LOAD) {
@@ -195,7 +195,7 @@ typedef struct _alloc_pair {
     usize alloc_no, idx;
 } alloc_pair;
 
-internal int alloc_pair_cmp(const void *lhs, const void *rhs) {
+internal i32 alloc_pair_cmp(const void *lhs, const void *rhs) {
     if (((alloc_pair *)lhs)->alloc_no < ((alloc_pair *)rhs)->alloc_no) {
         return -1;
     }
@@ -279,7 +279,7 @@ void memdbg_print_stats(FILE *stream, bool print_chunks) {
     memtable_print_stats(stream, &memdbg_tally, print_chunks);
 }
 
-void *memdbg_malloc(usize size, const char *file, int line, const char *func) {
+void *memdbg_malloc(usize size, const char *file, i32 line, const char *func) {
     void *ret = malloc(size);
 
 #ifdef MEMDBG_PRINT_ALL
@@ -296,7 +296,7 @@ void *memdbg_malloc(usize size, const char *file, int line, const char *func) {
     return ret;
 }
 
-void *memdbg_calloc(usize num_elems, usize stride, const char *file, int line, const char *func) {
+void *memdbg_calloc(usize num_elems, usize stride, const char *file, i32 line, const char *func) {
     void *ret = calloc(num_elems, stride);
 
 #ifdef MEMDBG_PRINT_ALL
@@ -313,7 +313,7 @@ void *memdbg_calloc(usize num_elems, usize stride, const char *file, int line, c
     return ret;
 }
 
-void *memdbg_realloc(void *ptr, usize size, const char *file, int line, const char *func) {
+void *memdbg_realloc(void *ptr, usize size, const char *file, i32 line, const char *func) {
     void *ret = realloc(ptr, size);
     if (ret != ptr) {
         memtable_unset(&memdbg_tally, ptr);
@@ -333,7 +333,7 @@ void *memdbg_realloc(void *ptr, usize size, const char *file, int line, const ch
     return ret;
 }
 
-void memdbg_free(void *ptr, const char *file, int line, const char *func) {
+void memdbg_free(void *ptr, const char *file, i32 line, const char *func) {
     memdbg_query_output output = memtable_get(&memdbg_tally, ptr);
 
     assert(output.active);

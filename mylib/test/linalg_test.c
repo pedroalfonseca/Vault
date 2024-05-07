@@ -19,7 +19,7 @@ int main(void) {
     printf("{%d, %d, %d, %d}\n", e.x, e.y, e.width, e.height);
 
     vec4 color = COLOR_PURPLE;
-    printf("{%d, %d, %d, %d}\n", color.x, color.y, color.z, color.w);
+    printf("{%f, %f, %f, %f}\n", color.x, color.y, color.z, color.w);
 
     return 0;
 }
