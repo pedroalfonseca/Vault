@@ -4,7 +4,7 @@
 
 int main(void) {
     ubyte buffer[KB(1)];
-    arena a;
+    Arena a;
     arena_init(&a, buffer, 256);
 
     int *x;
@@ -34,7 +34,7 @@ int main(void) {
     }
 
     puts("-- pool test --");
-    pool p;
+    Pool p;
     pool_init(&p, buffer, KB(1), 64);
 
     void *v0, *v1, *v2, *v3, *v4, *v5;

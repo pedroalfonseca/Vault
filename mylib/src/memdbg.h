@@ -13,12 +13,12 @@
 
 global const char *prefixes[7] = {"", "kilo", "mega", "giga", "tera", "peta", "exa"};
 
-typedef struct _pretty_size {
+typedef struct _Pretty_Size {
     f64         size;
     const char *prefix;
-} pretty_size;
+} Pretty_Size;
 
-internal pretty_size prettify(usize size) {
+internal Pretty_Size prettify(usize size) {
     f64 total = (f64)size;
 
     usize i = 0;
@@ -27,7 +27,7 @@ internal pretty_size prettify(usize size) {
         ++i;
     }
 
-    pretty_size ret;
+    Pretty_Size ret;
     ret.size = total / (f64)(1 << (i * 10));
     ret.prefix = prefixes[i];
 
@@ -45,46 +45,46 @@ internal usize fib_hash(void *addr, usize cap) {
 
 // --------------------------------------------------------------------------------
 
-typedef enum _memchunk_state {
+typedef enum _Memchunk_State {
     MEMCHUNK_FREE    = 0x00,
     MEMCHUNK_ACTIVE  = 0x01,
     MEMCHUNK_DELETED = 0x10
-} memchunk_state;
+} Memchunk_State;
 
 // --------------------------------------------------------------------------------
 
-typedef struct _memchunk {
+typedef struct _Memchunk {
     usize           alloc_no;
     usize           size;
-    memchunk_state  state;
+    Memchunk_State  state;
     void           *addr;
-} memchunk;
+} Memchunk;
 
 // --------------------------------------------------------------------------------
 
-typedef struct _memtable {
+typedef struct _Memtable {
     usize     num_total, num_act, num_del;
 
     usize     cap, size;
-    memchunk *data;
-} memtable;
+    Memchunk *data;
+} Memtable;
 
 #define MEMTABLE_MIN_CAP  128
 #define MEMTABLE_GROW_BY  1.62
 #define MEMTABLE_MIN_LOAD 0.25
 #define MEMTABLE_MAX_LOAD 0.66
 
-void memtable_init(memtable *self) {
+void memtable_init(Memtable *self) {
     if (self->cap > 0) {
         return;
     }
 
     self->num_total = self->num_act = self->num_del = 0;
     self->cap = MEMTABLE_MIN_CAP, self->size = 0;
-    self->data = (memchunk *)calloc(self->cap, sizeof(memchunk));
+    self->data = (Memchunk *)calloc(self->cap, sizeof(Memchunk));
 }
 
-void memtable_mgrow(memtable *self) {
+void memtable_mgrow(Memtable *self) {
     f64 load = (f64)(self->num_act + self->num_del) / (f64)(self->cap);
     usize new_cap = self->cap;
 
@@ -96,7 +96,7 @@ void memtable_mgrow(memtable *self) {
     }
 
     if (new_cap != self->cap) {
-        memchunk *new_data = (memchunk *)calloc(new_cap, sizeof(memchunk));
+        Memchunk *new_data = (Memchunk *)calloc(new_cap, sizeof(Memchunk));
 
         for (usize i = 0; i < self->cap; ++i) {
             if (self->data[i].state == MEMCHUNK_ACTIVE) {
@@ -114,7 +114,7 @@ void memtable_mgrow(memtable *self) {
     }
 }
 
-usize memtable_set(memtable *self, void *addr, usize size) {
+usize memtable_set(Memtable *self, void *addr, usize size) {
     memtable_init(self);
 
     usize idx = fib_hash(addr, self->cap);
@@ -144,7 +144,7 @@ usize memtable_set(memtable *self, void *addr, usize size) {
     return ret;
 }
 
-void memtable_unset(memtable *self, void *addr) {
+void memtable_unset(Memtable *self, void *addr) {
     memtable_init(self);
 
     usize idx = fib_hash(addr, self->cap);
@@ -164,13 +164,13 @@ void memtable_unset(memtable *self, void *addr) {
     memtable_mgrow(self);
 }
 
-typedef struct _memdbg_query_output {
+typedef struct _Memdbg_Query_Output {
     bool  active;
     usize size;
-} memdbg_query_output;
+} Memdbg_Query_Output;
 
-memdbg_query_output memtable_get(memtable *self, void *addr) {
-    memdbg_query_output ret = DEFAULT_VAL;
+Memdbg_Query_Output memtable_get(Memtable *self, void *addr) {
+    Memdbg_Query_Output ret = DEFAULT_VAL;
 
     usize idx = fib_hash(addr, self->cap);
     while (self->data[idx].state != MEMCHUNK_FREE) {
@@ -191,16 +191,16 @@ memdbg_query_output memtable_get(memtable *self, void *addr) {
 
 // --------------------------------------------------------------------------------
 
-typedef struct _alloc_pair {
+typedef struct _Alloc_Pair {
     usize alloc_no, idx;
-} alloc_pair;
+} Alloc_Pair;
 
 internal i32 alloc_pair_cmp(const void *lhs, const void *rhs) {
-    if (((alloc_pair *)lhs)->alloc_no < ((alloc_pair *)rhs)->alloc_no) {
+    if (((Alloc_Pair *)lhs)->alloc_no < ((Alloc_Pair *)rhs)->alloc_no) {
         return -1;
     }
 
-    if (((alloc_pair *)lhs)->alloc_no > ((alloc_pair *)rhs)->alloc_no) {
+    if (((Alloc_Pair *)lhs)->alloc_no > ((Alloc_Pair *)rhs)->alloc_no) {
         return +1;
     }
 
@@ -209,7 +209,7 @@ internal i32 alloc_pair_cmp(const void *lhs, const void *rhs) {
 
 // --------------------------------------------------------------------------------
 
-void memtable_print_stats(FILE *stream, memtable *self, bool print_chunks) {
+void memtable_print_stats(FILE *stream, Memtable *self, bool print_chunks) {
     fprintf(stream, "\x1b[90m================================================================================\033[0m\n");
     fprintf(stream, "                                \x1b[93mheap memory info\033[0m\n");
 
@@ -218,7 +218,7 @@ void memtable_print_stats(FILE *stream, memtable *self, bool print_chunks) {
         fprintf(stream, "\x1b[97m* chunks in chronological order of allocation\033[0m\n\n");
 
         usize n = self->num_act, k = 0;
-        alloc_pair *pairs = (alloc_pair *)malloc(n * sizeof(alloc_pair));
+        Alloc_Pair *pairs = (Alloc_Pair *)malloc(n * sizeof(Alloc_Pair));
 
         for (usize i = 0; i < self->cap; ++i) {
             if (self->data[i].state == MEMCHUNK_ACTIVE) {
@@ -230,7 +230,7 @@ void memtable_print_stats(FILE *stream, memtable *self, bool print_chunks) {
 
         assert(k == n);
 
-        qsort(pairs, n, sizeof(alloc_pair), alloc_pair_cmp);
+        qsort(pairs, n, sizeof(Alloc_Pair), alloc_pair_cmp);
 
         usize idx;
         for (usize i = 0; i < n; ++i) {
@@ -245,7 +245,7 @@ void memtable_print_stats(FILE *stream, memtable *self, bool print_chunks) {
         free(pairs);
     }
 
-    pretty_size ps = prettify(self->size);
+    Pretty_Size ps = prettify(self->size);
 
     fprintf(stream, "\x1b[97m* heap memory usage summary\033[0m\n\n");
     fprintf(stream, "total memory:     %zu bytes (%.3lf %sbytes)\n", self->size, ps.size, ps.prefix);
@@ -256,7 +256,7 @@ void memtable_print_stats(FILE *stream, memtable *self, bool print_chunks) {
 
 // --------------------------------------------------------------------------------
 
-global memtable memdbg_tally = DEFAULT_VAL;
+global Memtable memdbg_tally = DEFAULT_VAL;
 
 void memdbg_reset() {
     memdbg_tally.num_total = memdbg_tally.num_act = memdbg_tally.num_del = 0;
@@ -271,7 +271,7 @@ bool memdbg_empty() {
     return !memdbg_tally.size && !memdbg_tally.num_act;
 }
 
-memdbg_query_output memdbg_query(void *addr) {
+Memdbg_Query_Output memdbg_query(void *addr) {
     return memtable_get(&memdbg_tally, addr);
 }
 
@@ -284,7 +284,7 @@ void *memdbg_malloc(usize size, const char *file, i32 line, const char *func) {
 
 #ifdef MEMDBG_PRINT_ALL
     usize alloc_no = memtable_set(&memdbg_tally, ret, size);
-    pretty_size ps = prettify(memdbg_tally.size);
+    Pretty_Size ps = prettify(memdbg_tally.size);
 
     fprintf(stderr,
             "\x1b[97m[%s:%d]\033[0m in function \x1b[97m'%s'\033[0m \x1b[93mmalloc\033[0m #%zu %zu bytes at %p (total: %.3lf %sbytes)\n",
@@ -301,7 +301,7 @@ void *memdbg_calloc(usize num_elems, usize stride, const char *file, i32 line, c
 
 #ifdef MEMDBG_PRINT_ALL
     usize alloc_no = memtable_set(&memdbg_tally, ret, num_elems * stride);
-    pretty_size ps = prettify(memdbg_tally.size);
+    Pretty_Size ps = prettify(memdbg_tally.size);
 
     fprintf(stderr,
             "\x1b[97m[%s:%d]\033[0m in function \x1b[97m'%s'\033[0m \x1b[93mcalloc\033[0m #%zu %zu bytes at %p (total: %.3lf %sbytes)\n",
@@ -321,7 +321,7 @@ void *memdbg_realloc(void *ptr, usize size, const char *file, i32 line, const ch
 
 #ifdef MEMDBG_PRINT_ALL
     usize alloc_no = memtable_set(&memdbg_tally, ret, size);
-    pretty_size ps = prettify(memdbg_tally.size);
+    Pretty_Size ps = prettify(memdbg_tally.size);
 
     fprintf(stderr,
             "\x1b[97m[%s:%d]\033[0m in function \x1b[97m'%s'\033[0m \x1b[93mrealloc\033[0m #%zu %zu bytes at %p (total: %.3lf %sbytes)\n",
@@ -334,7 +334,7 @@ void *memdbg_realloc(void *ptr, usize size, const char *file, i32 line, const ch
 }
 
 void memdbg_free(void *ptr, const char *file, i32 line, const char *func) {
-    memdbg_query_output output = memtable_get(&memdbg_tally, ptr);
+    Memdbg_Query_Output output = memtable_get(&memdbg_tally, ptr);
 
     assert(output.active);
 
@@ -343,7 +343,7 @@ void memdbg_free(void *ptr, const char *file, i32 line, const char *func) {
     memtable_unset(&memdbg_tally, ptr);
 
 #ifdef MEMDBG_PRINT_ALL
-    pretty_size ps = prettify(memdbg_tally.size);
+    Pretty_Size ps = prettify(memdbg_tally.size);
     fprintf(stderr,
             "\x1b[97m[%s:%d]\033[0m in function \x1b[97m'%s'\033[0m \x1b[93mfree\033[0m at %p (total: %.3lf %sbytes)\n",
             file, line, func, ptr, ps.size, ps.prefix);

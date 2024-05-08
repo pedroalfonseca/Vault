@@ -48,24 +48,24 @@ internal uptr align_forward(uptr ptr, usize alignment) {
 
 // Adapted from https://www.gingerbill.org/article/2019/02/08/memory-allocation-strategies-002/
 
-typedef struct _arena {
+typedef struct _Arena {
     usize  total_size;
     ubyte *data;
 
     usize  prev_offset, cur_offset;
-} arena;
+} Arena;
 
-void arena_clear(arena *self) {
+void arena_clear(Arena *self) {
     self->prev_offset = self->cur_offset = 0;
 }
 
-void arena_init(arena *self, void *mem, usize total_size) {
+void arena_init(Arena *self, void *mem, usize total_size) {
     self->total_size = total_size;
     self->data = (ubyte *)mem;
     self->prev_offset = self->cur_offset = 0;
 }
 
-void *arena_alloc_align(arena *self, usize size, usize alignment) {
+void *arena_alloc_align(Arena *self, usize size, usize alignment) {
     // Align 'cur_offset' forward to the specified alignment
     uptr cur_ptr = (uptr)self->data + (uptr)self->cur_offset;
     uptr offset = align_forward(cur_ptr, alignment);
@@ -84,13 +84,13 @@ void *arena_alloc_align(arena *self, usize size, usize alignment) {
 }
 
 // Because C doesn't have default parameters
-void *arena_alloc(arena *self, usize size) {
+void *arena_alloc(Arena *self, usize size) {
     return arena_alloc_align(self, size, ARENA_DEFAULT_ALIGNMENT);
 }
 
-void arena_free(arena *self, void *ptr) {}
+void arena_free(Arena *self, void *ptr) {}
 
-void *arena_resize_align(arena *self, void *mem, usize size, usize new_size, usize alignment) {
+void *arena_resize_align(Arena *self, void *mem, usize size, usize new_size, usize alignment) {
     ubyte *old_mem = (ubyte *)mem;
     usize old_size = size;
 
@@ -119,19 +119,19 @@ void *arena_resize_align(arena *self, void *mem, usize size, usize new_size, usi
 }
 
 // Because C doesn't have default parameters
-void *arena_resize(arena *self, void *mem, usize size, usize new_size) {
+void *arena_resize(Arena *self, void *mem, usize size, usize new_size) {
     return arena_resize_align(self, mem, size, new_size, ARENA_DEFAULT_ALIGNMENT);
 }
 
 // --------------------------------------------------------------------------------
 
-typedef struct _tmp_arena {
-    arena  *mem;
+typedef struct _Tmp_Arena {
+    Arena  *mem;
     usize   prev_offset, cur_offset;
-} tmp_arena;
+} Tmp_Arena;
 
-tmp_arena tmp_arena_begin(arena *mem) {
-	tmp_arena ret;
+Tmp_Arena tmp_arena_begin(Arena *mem) {
+	Tmp_Arena ret;
 	ret.mem = mem;
 	ret.prev_offset = mem->prev_offset;
 	ret.cur_offset = mem->cur_offset;
@@ -139,7 +139,7 @@ tmp_arena tmp_arena_begin(arena *mem) {
 	return ret;
 }
 
-void tmp_arena_end(tmp_arena tmp) {
+void tmp_arena_end(Tmp_Arena tmp) {
 	tmp.mem->prev_offset = tmp.prev_offset;
 	tmp.mem->cur_offset = tmp.cur_offset;
 }
@@ -148,34 +148,34 @@ void tmp_arena_end(tmp_arena tmp) {
 
 // Adapted from https://www.gingerbill.org/article/2019/02/16/memory-allocation-strategies-004/
 
-typedef struct _freenode {
-    struct _freenode *next;
-} freenode;
+typedef struct _Freenode {
+    struct _Freenode *next;
+} Freenode;
 
-typedef struct _pool {
+typedef struct _Pool {
     usize     total_size;
     ubyte    *data;
 
     usize     chunk_size;
-    freenode *head;
-} pool;
+    Freenode *head;
+} Pool;
 
-void pool_clear(pool *self) {
+void pool_clear(Pool *self) {
     usize num_chunks = self->total_size / self->chunk_size;
     void *ptr = NULL;
-    freenode *node = NULL;
+    Freenode *node = NULL;
 
     // Set all chunks to be free
     for (usize i = 0; i < num_chunks; ++i) {
         ptr = self->data + (i * self->chunk_size);
-        node = (freenode *)ptr;
+        node = (Freenode *)ptr;
         // Push free node onto thte free list
         node->next = self->head;
         self->head = node;
     }
 }
 
-void pool_init_align(pool *self, void *mem, usize size, usize chunk_size, usize chunk_alignment) {
+void pool_init_align(Pool *self, void *mem, usize size, usize chunk_size, usize chunk_alignment) {
     // Align backing buffer to the specified chunk alignment
     uptr initial_start = (uptr)mem;
     uptr start = align_forward(initial_start, (uptr)chunk_alignment);
@@ -184,7 +184,7 @@ void pool_init_align(pool *self, void *mem, usize size, usize chunk_size, usize 
     // Align chunk size up to the required chunk alignment
     chunk_size = (usize)align_forward(chunk_size, chunk_alignment);
 
-    assert(chunk_size >= sizeof(freenode) && chunk_size <= size);
+    assert(chunk_size >= sizeof(Freenode) && chunk_size <= size);
 
     self->data = (ubyte *)mem;
     self->total_size = size;
@@ -196,13 +196,13 @@ void pool_init_align(pool *self, void *mem, usize size, usize chunk_size, usize 
 }
 
 // Because C doesn't have default parameters
-void pool_init(pool *self, void *mem, usize size, usize chunk_size) {
+void pool_init(Pool *self, void *mem, usize size, usize chunk_size) {
     pool_init_align(self, mem, size, chunk_size, POOL_DEFAULT_ALIGNMENT);
 }
 
-void *pool_alloc(pool *self) {
+void *pool_alloc(Pool *self) {
     // Get latest free node
-    freenode *node = self->head;
+    Freenode *node = self->head;
     assert(node != NULL);
 
     // Pop free node
@@ -211,7 +211,7 @@ void *pool_alloc(pool *self) {
     return node;
 }
 
-void pool_free(pool *self, void *ptr) {
+void pool_free(Pool *self, void *ptr) {
     if (ptr == NULL) {
         return;
     }
@@ -219,7 +219,7 @@ void pool_free(pool *self, void *ptr) {
     assert((ubyte *)ptr >= self->data && (ubyte *)ptr < self->data + self->total_size);
 
     // Push free node
-    freenode *node = (freenode *)ptr;
+    Freenode *node = (Freenode *)ptr;
     node->next = self->head;
     self->head = node;
 }
@@ -372,7 +372,7 @@ char *file_read_buffer(const char *path, i32 *size, char *buffer) {
     return buffer;
 }
 
-char *file_read(const char *path, i32 *size, arena *mem) {
+char *file_read(const char *path, i32 *size, Arena *mem) {
     assert(mem != NULL);
 
     char *data = NULL;
@@ -417,7 +417,7 @@ bool file_copy_buffer(const char *src_path, const char *dst_path, char *buffer) 
     return true;
 }
 
-bool file_copy(const char *src_path, const char *dst_path, arena *mem) {
+bool file_copy(const char *src_path, const char *dst_path, Arena *mem) {
     assert(mem != NULL);
 
     i32 size = file_size(src_path);
@@ -479,33 +479,32 @@ extern FILE *_log_file;
 
 #if defined(__cplusplus) && (__cplusplus >= 201103L)
 
-template<typename T> struct remove_reference       { typedef T type; };
-template<typename T> struct remove_reference<T &>  { typedef T type; };
-template<typename T> struct remove_reference<T &&> { typedef T type; };
+template<typename T> struct Remove_Reference       { typedef T Type; };
+template<typename T> struct Remove_Reference<T &>  { typedef T Type; };
+template<typename T> struct Remove_Reference<T &&> { typedef T Type; };
 
 // --------------------------------------------------------------------------------
 
-template<typename T> inline T &&forward(typename remove_reference<T>::type &t)  { return static_cast<T &&>(t); }
-template<typename T> inline T &&forward(typename remove_reference<T>::type &&t) { return static_cast<T &&>(t); }
-template<typename T> inline T &&move(T &&t)                                     { return static_cast<typename remove_reference<T>::type &&>(t); }
+template<typename T> inline T &&forward(typename Remove_Reference<T>::Type &t)  { return static_cast<T &&>(t); }
+template<typename T> inline T &&forward(typename Remove_Reference<T>::Type &&t) { return static_cast<T &&>(t); }
+template<typename T> inline T &&move(T &&t)                                     { return static_cast<typename Remove_Reference<T>::Type &&>(t); }
 
 // --------------------------------------------------------------------------------
 
 template<typename Func>
-struct scope_exit {
+struct Scope_Exit {
     Func function;
 
-    scope_exit(Func &&func) : function(forward<Func>(func)) {}
+    Scope_Exit(Func &&func) : function(forward<Func>(func)) {}
 
-    ~scope_exit() { function(); }
+    ~Scope_Exit() { function(); }
 };
 
-struct scope_exit_helper {
-    template<typename Func>
-    scope_exit<Func> operator<<(Func func) { return func; }
+struct Scope_Exit_Helper {
+    template<typename Func> Scope_Exit<Func> operator<<(Func func) { return func; }
 };
 
-#define defer const auto &concat(_defer_, __LINE__) = scope_exit_helper() << [&]()
+#define defer const auto &concat(_defer_, __LINE__) = Scope_Exit_Helper() << [&]()
 
 #endif // defined(__cplusplus) && (__cplusplus >= 201103L)
 

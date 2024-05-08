@@ -2,7 +2,6 @@
 
 if [[ "${1: -2}" == ".c" ]]; then
     gcc -std=c99 -Wall -Wextra -Wshadow -O2 -DDEBUG_MODE -lm "$1" -o prog
-
 elif [[ "${1: -4}" == ".cpp" || "${1: -4}" == ".cxx" || "${1: -3}" == ".cc" ]]; then
     g++ -std=c++11 -Wall -Wextra -Wshadow -fno-exceptions -fno-rtti -O2 -DDEBUG_MODE "$1" -o prog
 else
