@@ -432,14 +432,14 @@ bool file_copy(const char *src_path, const char *dst_path, Arena *mem) {
 
 // --------------------------------------------------------------------------------
 
-typedef enum _text_color {
+typedef enum _Text_Color {
     TEXT_COLOR_RED,
     TEXT_COLOR_GREEN,
     TEXT_COLOR_YELLOW,
     TEXT_COLOR_COUNT
-} text_color;
+} Text_Color;
 
-void _log(FILE *stream, const char *prefix, const char *fmt, text_color color, ...) {
+void _log(FILE *stream, const char *prefix, const char *fmt, Text_Color color, ...) {
     local const char *text_color_table[TEXT_COLOR_COUNT] = {
         "\x1b[31m", // TEXT_COLOR_RED
         "\x1b[32m", // TEXT_COLOR_GREEN
@@ -501,7 +501,7 @@ struct Scope_Exit {
 };
 
 struct Scope_Exit_Helper {
-    template<typename Func> Scope_Exit<Func> operator<<(Func func) { return func; }
+    template<typename Func> Scope_Exit<Func> operator<<(Func &&func) { return Scope_Exit<Func>(forward<Func>(func)); }
 };
 
 #define defer const auto &concat(_defer_, __LINE__) = Scope_Exit_Helper() << [&]()
